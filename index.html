@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Menu Requirements Form</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#1b2430;--mute:#5d6b7a;--line:#d5dce3;--acc:#0f6b66;--acc-ink:#fff;--soft:#e4f1f0;--err:#b3261e}
+@media(prefers-color-scheme:dark){:root{--bg:#12181f;--card:#1b242d;--ink:#e8edf2;--mute:#9aa8b6;--line:#32404d;--acc:#4fb8b0;--acc-ink:#08201e;--soft:#1f3a39;--err:#ff8a80}}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px 14px 90px}
+h1{font-size:1.5rem;margin:8px 0 2px}
+p.sub{margin:0 0 16px;color:var(--mute)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(200px,1fr))}
+label{display:block;font-size:.875rem;font-weight:600;margin-bottom:4px}
+input,select,textarea{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;min-height:44px}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid var(--acc);outline-offset:1px}
+textarea{resize:vertical;min-height:80px}
+input[readonly]{color:var(--mute)}
+button{font:inherit;font-weight:600;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+button.pri{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+button.lnk{border:0;background:none;color:var(--err);padding:0 8px}
+.lhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.lhead strong{font-size:1rem}
+.mods{margin-top:12px;border-top:1px dashed var(--line);padding-top:10px}
+.mrow{display:grid;grid-template-columns:1fr 110px 44px;gap:8px;margin-bottom:8px;align-items:center}
+.mrow.same{grid-template-columns:1fr 44px}
+.mrow.same .p{display:none}
+.tog{display:flex;align-items:center;gap:10px;margin:6px 0 10px;font-size:.9rem}
+.tog input{width:20px;height:20px;min-height:0}
+.tog .sp{width:120px}
+.bar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 14px;padding-bottom:calc(10px + env(safe-area-inset-bottom,0px))}
+.bar div{max-width:860px;margin:0 auto;display:flex;gap:10px}
+.bar button{flex:1}
+#msg{margin-top:14px;padding:12px;border-radius:8px;background:var(--soft);display:none;word-break:break-word}
+#msg.bad{color:var(--err)}
+#msg a{color:var(--acc);font-weight:600}
+@media(max-width:480px){.mrow{grid-template-columns:1fr 90px 44px}.tog{flex-wrap:wrap}}
+</style>
+</head>
+<body>
+<main>
+<h1>Menu Requirements Form</h1>
+<p class="sub">Fill in the details, add the menu items, then save.</p>
+
+<section class="card grid">
+  <div><label for="client">Client name</label><input id="client" autocomplete="off"></div>
+  <div><label for="by">Filled by</label>
+    <select id="by"><option value="">Select name</option><option>Shiham Riyaz</option><option>Rushdy Shiham</option><option>Ashif Shiham</option><option>Kirankumar</option><option value="__other">Other</option></select>
+    <input id="other" placeholder="Type name and press Enter" autocomplete="off" style="display:none;margin-top:8px"></div>
+  <div><label for="date">Date</label><input id="date" readonly></div>
+</section>
+
+<div id="lines"></div>
+<button id="add" type="button">Add line</button>
+
+<section class="card" style="margin-top:14px"><label for="extra">Additional Information</label><textarea id="extra" rows="4"></textarea></section>
+<div id="msg" role="status"></div>
+</main>
+
+<div class="bar"><div>
+  <button id="save" class="pri" type="button">Save and download CSV</button>
+</div></div>
+
+<script>
+// ---- GitHub settings: fill these in for the dedicated account/repo ----
+const CFG={owner:"",repo:"",branch:"main",folder:"submissions",token:""};
+// Do NOT put the token in this file (GitHub revokes tokens found in public repos).
+// The page asks for it once per device and keeps it in that browser only.
+try{CFG.token=localStorage.getItem("mrf_token")||""}catch(e){}
+
+const $=s=>document.querySelector(s);
+const TYPES=["Product","Category","Portion","Whole Menu"];
+let n=0;
+const today=new Date();
+const iso=today.toISOString().slice(0,10);
+$("#date").value=iso;
+// Extra names are remembered in this browser only
+const KEY="mrf_extra_names";
+const getNames=()=>{try{return JSON.parse(localStorage.getItem(KEY))||[]}catch(e){return[]}};
+function addNameOption(nm){
+  const o=document.createElement("option");o.textContent=nm;
+  $("#by").insertBefore(o,$("#by").querySelector('[value="__other"]'));
+}
+getNames().forEach(addNameOption);
+function commitOther(){
+  const nm=$("#other").value.trim();if(!nm)return false;
+  if(![...$("#by").options].some(o=>o.textContent===nm)){
+    const names=getNames();names.push(nm);
+    try{localStorage.setItem(KEY,JSON.stringify(names))}catch(e){}
+    addNameOption(nm);
+  }
+  $("#by").value=nm;$("#other").value="";$("#other").style.display="none";return true;
+}
+$("#by").onchange=()=>{const o=$("#by").value==="__other";$("#other").style.display=o?"":"none";if(o)$("#other").focus()};
+$("#other").addEventListener("change",commitOther);
+$("#other").addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commitOther()}});
+
+function addLine(){
+  n++;
+  const d=document.createElement("div");
+  d.className="card line";
+  d.innerHTML=`<div class="lhead"><strong>Line ${n}</strong><button class="lnk rm" type="button">Remove</button></div>
+  <div class="grid">
+    <div><label>Type</label><select class="type">${TYPES.map(t=>`<option>${t}</option>`).join("")}</select></div>
+    <div><label>Name</label><input class="name" autocomplete="off"></div>
+    <div style="grid-column:1/-1"><label>Description / Note</label><textarea class="note" rows="2"></textarea></div>
+  </div>
+  <div class="mods">
+    <label>Modifiers and prices</label>
+    <div class="tog"><input type="checkbox" class="same" id="s${n}"><label for="s${n}" style="margin:0;font-weight:400">Same price for all modifiers</label>
+      <input class="sp" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Price" style="display:none"></div>
+    <div class="rows"></div>
+    <button class="am" type="button">Add modifier</button>
+  </div>`;
+  $("#lines").appendChild(d);
+  addMod(d);
+  d.querySelector(".name").focus();
+}
+function addMod(d){
+  const r=document.createElement("div");
+  r.className="mrow"+(d.querySelector(".same").checked?" same":"");
+  r.innerHTML=`<input class="mn" placeholder="Modifier" autocomplete="off"><input class="p" type="number" step="0.01" min="0" inputmode="decimal" placeholder="Price"><button class="lnk rmm" type="button" aria-label="Remove modifier">X</button>`;
+  d.querySelector(".rows").appendChild(r);
+}
+function renum(){document.querySelectorAll(".line").forEach((l,i)=>l.querySelector(".lhead strong").textContent="Line "+(i+1))}
+
+$("#add").onclick=addLine;
+$("#lines").addEventListener("click",e=>{
+  const d=e.target.closest(".line");if(!d)return;
+  if(e.target.classList.contains("rm")){d.remove();renum()}
+  if(e.target.classList.contains("am"))addMod(d);
+  if(e.target.classList.contains("rmm"))e.target.closest(".mrow").remove();
+});
+$("#lines").addEventListener("change",e=>{
+  if(e.target.classList.contains("same")){
+    const d=e.target.closest(".line");
+    d.querySelector(".sp").style.display=e.target.checked?"":"none";
+    d.querySelectorAll(".mrow").forEach(r=>r.classList.toggle("same",e.target.checked));
+  }
+});
+
+const q=v=>`"${String(v).replace(/"/g,'""')}"`;
+function show(html,bad){const m=$("#msg");m.innerHTML=html;m.className=bad?"bad":"";m.style.display="block";m.scrollIntoView({behavior:"smooth",block:"center"})}
+
+function build(){
+  if($("#by").value==="__other"&&!commitOther()){show("Enter a name for Other, or pick a name from the list.",true);return null}
+  const client=$("#client").value.trim(),by=$("#by").value;
+  if(!client||!by){show("Enter the client name and select who is filling this form.",true);return null}
+  const lines=[...document.querySelectorAll(".line")];
+  if(!lines.length){show("Add at least one line.",true);return null}
+  const rows=[["Client","Filled By","Date","Line","Type","Name","Note","Modifier","Price"]];
+  for(let i=0;i<lines.length;i++){
+    const l=lines[i],name=l.querySelector(".name").value.trim();
+    if(!name){show(`Enter a name for line ${i+1}.`,true);return null}
+    const note=l.querySelector(".note").value.trim(),type=l.querySelector(".type").value,same=l.querySelector(".same").checked,sp=l.querySelector(".sp").value;
+    const mods=[...l.querySelectorAll(".mrow")].map(r=>[r.querySelector(".mn").value.trim(),same?sp:r.querySelector(".p").value]).filter(m=>m[0]);
+    if(!mods.length)rows.push([client,by,iso,i+1,type,name,note,"",""]);
+    else mods.forEach(m=>rows.push([client,by,iso,i+1,type,name,note,m[0],m[1]]));
+  }
+  const extra=$("#extra").value.trim();
+  if(extra)rows.push([client,by,iso,"","Additional Information",extra,"","",""]);
+  return{client,csv:rows.map(r=>r.map(q).join(",")).join("\r\n")};
+}
+const b64=s=>{const b=new TextEncoder().encode(s);let t="";b.forEach(c=>t+=String.fromCharCode(c));return btoa(t)};
+
+$("#save").onclick=async()=>{
+  const out=build();if(!out)return;
+  const slug=out.client.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
+  const stamp=today.toISOString().slice(0,16).replace(/[-:T]/g,"");
+  const file=`${slug}_${stamp}.csv`;
+  // download
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob(["\ufeff"+out.csv],{type:"text/csv"}));
+  a.download=file;document.body.appendChild(a);a.click();a.remove();
+  // commit to repo
+  if(CFG.owner&&CFG.repo&&!CFG.token){const t=prompt("Paste the GitHub token to save to the repo (asked once on this device):");if(t){CFG.token=t.trim();try{localStorage.setItem("mrf_token",CFG.token)}catch(e){}}}
+  if(!CFG.owner||!CFG.repo||!CFG.token){show("CSV downloaded. Repo saving is not set up yet (add the GitHub details in the page settings).",true);return}
+  show("CSV downloaded. Saving to repo...");
+  try{
+    const path=`${CFG.folder}/${file}`;
+    const res=await fetch(`https://api.github.com/repos/${CFG.owner}/${CFG.repo}/contents/${path}`,{
+      method:"PUT",
+      headers:{Authorization:"Bearer "+CFG.token,Accept:"application/vnd.github+json"},
+      body:JSON.stringify({message:`Add requirements: ${out.client}`,content:b64(out.csv),branch:CFG.branch})
+    });
+    const j=await res.json();
+    if(!res.ok)throw new Error(j.message||res.status);
+    show(`Saved to repo and downloaded. <a href="${j.content.html_url}" target="_blank" rel="noopener">Open saved file</a>`);
+  }catch(err){show("CSV downloaded, but saving to the repo failed: "+err.message+". Keep the downloaded file.",true)}
+};
+addLine();
+</script>
+</body>
+</html>
