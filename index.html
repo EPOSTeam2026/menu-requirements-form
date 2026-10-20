@@ -152,17 +152,19 @@ function build(){
   if(!client||!by){show("Enter the client name and select who is filling this form.",true);return null}
   const lines=[...document.querySelectorAll(".line")];
   if(!lines.length){show("Add at least one line.",true);return null}
-  const rows=[["Client","Filled By","Date","Line","Type","Name","Note","Modifier","Price"]];
+  const rows=[["Date","Who Filled","Client Name"],[iso,by,client],[]];
   for(let i=0;i<lines.length;i++){
     const l=lines[i],name=l.querySelector(".name").value.trim();
     if(!name){show(`Enter a name for line ${i+1}.`,true);return null}
     const note=l.querySelector(".note").value.trim(),type=l.querySelector(".type").value,same=l.querySelector(".same").checked,sp=l.querySelector(".sp").value;
     const mods=[...l.querySelectorAll(".mrow")].map(r=>[r.querySelector(".mn").value.trim(),same?sp:r.querySelector(".p").value]).filter(m=>m[0]);
-    if(!mods.length)rows.push([client,by,iso,i+1,type,name,note,"",""]);
-    else mods.forEach(m=>rows.push([client,by,iso,i+1,type,name,note,m[0],m[1]]));
+    rows.push([type,name]);
+    rows.push([note]);
+    mods.forEach(m=>rows.push([m[0],m[1]]));
+    rows.push([]);
   }
   const extra=$("#extra").value.trim();
-  if(extra)rows.push([client,by,iso,"","Additional Information",extra,"","",""]);
+  if(extra){rows.push(["Additional Information"]);rows.push([extra])}
   return{client,csv:rows.map(r=>r.map(q).join(",")).join("\r\n")};
 }
 const b64=s=>{const b=new TextEncoder().encode(s);let t="";b.forEach(c=>t+=String.fromCharCode(c));return btoa(t)};
