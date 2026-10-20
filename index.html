@@ -169,6 +169,14 @@ function build(){
 }
 const b64=s=>{const b=new TextEncoder().encode(s);let t="";b.forEach(c=>t+=String.fromCharCode(c));return btoa(t)};
 
+
+
+function resetForm(){
+  $("#client").value="";$("#by").value="";$("#other").value="";$("#other").style.display="none";$("#extra").value="";
+  $("#lines").innerHTML="";n=0;addLine();
+  if(document.activeElement)document.activeElement.blur();
+}
+  
 $("#save").onclick=async()=>{
   const out=build();if(!out)return;
   const slug=out.client.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
@@ -178,6 +186,7 @@ $("#save").onclick=async()=>{
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob(["\ufeff"+out.csv],{type:"text/csv"}));
   a.download=file;document.body.appendChild(a);a.click();a.remove();
+  resetForm(); // data is already captured in "out", so the form can be cleared now
   // commit to repo
   if(CFG.owner&&CFG.repo&&!CFG.token){const t=prompt("Paste the GitHub token to save to the repo (asked once on this device):");if(t){CFG.token=t.trim();try{localStorage.setItem("mrf_token",CFG.token)}catch(e){}}}
   if(!CFG.owner||!CFG.repo||!CFG.token){show("CSV downloaded. Repo saving is not set up yet (add the GitHub details in the page settings).",true);return}
